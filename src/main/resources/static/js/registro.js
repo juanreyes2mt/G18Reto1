@@ -1,10 +1,11 @@
 $(document).ready (function(){
     $("#username").focus();
 });
-
+var correoValido=false;
 function registrarse(){
     if(validar()==true){
-        validarExisteEmail();
+        let correo = $("#useremail").val();
+        validarExisteEmail(correo,true);
     }
 }
 
@@ -15,9 +16,9 @@ function crearUsuario(){
         name:$("#username").val()  
     };
     let dataToSend=JSON.stringify(myData);
-    if(validar()==true && validaContraseña()==true){
+    if(validar()==true && validaContraseña()==true && correoValido){
         $.ajax ({
-            url:"http://localhost:8080/api/user/new",
+            url:"/api/user/new",
             type:"POST",
             data:dataToSend,
             datatype:'JSON',
@@ -26,34 +27,34 @@ function crearUsuario(){
                 console.log("Creación exitosa");
                 limpiarCampos();
                 alert("Nuevo Usuario Creado")
+                location.href="index.html"
             },
             error: function(jqXHR, textStatus, errorThrown) {
                 console.log("Algo fallo")
             }
         });
+    }else{
+        alert("Verifique los campos que ha ingresado. Revise si:\n- si su correo es válido\n- si las contraseñas coinciden\n- no tienen campos vacíos ")
     }
 }
 
-function validarExisteEmail(){
-    //Leer datos
-    let email= $("#useremail").val()
+function validarExisteEmail(email,crear){
     //Generar una peticion tipo ajax para validar login
     $.ajax ({
-        url: "http://localhost:8080/api/user/"+email,
+        url: "/api/user/"+email,
         type: 'GET',
         dataType: 'json',
         contentType: "aplication/JSON",
         success: function(respuesta){
             console.log(respuesta);
             if(respuesta==true){
-                alert("Ya existe una cuenta asociada a este email");
-                $("#useremail").focus();
-                $("#password").val("")
-                $("#passwordrepeat").val("")
-                return true;
+                mostrarFormatoInvalido(texto="Ya existe una cuenta asociada a este email")
+                correoValido=false           
             }else{
-                crearUsuario();
-                return false
+                correoValido=true
+                if (crear){
+                    crearUsuario();
+                }
             }
         },
         error: function(jqXHR, textStatus, errorThrown) {
@@ -62,9 +63,6 @@ function validarExisteEmail(){
     });
 }
 
-function validaesVacio(dato){
-    return !dato.trim().length;
-}
 
 function validar(){
     //obtiene valores
@@ -72,8 +70,7 @@ function validar(){
     let email = $("#useremail").val();
     let password = $("#password").val();
     let passwordrepeat = $("#passwordrepeat").val();   
-    emailRegex = /^[-\w.%+]{1,64}@(?:[A-Z0-9-]{1,63}\.){1,125}[A-Z]{2,63}$/i;
-    if (emailRegex.test($("#useremail").val())) {
+    if (validarFormatoCorreo(email)) {
         if( validaesVacio(email)) { 
             errores="email vacio<br>";
             alert("Todos los campos deben estar completos");
@@ -89,9 +86,7 @@ function validar(){
             
         }
     }else{
-        $("#useremail").css("border", "1px solid red");
-            $("#badEmail").css("display", "block");
-            $("#badEmail").text("La direccion de correo es invalida");
+        mostrarFormatoInvalido()
     }
 
     //valida que los campos no sean vacios
@@ -144,3 +139,14 @@ function validaContraseña(){
         return false;
     }
 }
+
+function mostrarFormatoInvalido(texto="La direccion de correo es inválida"){
+    $("#useremail").css("border", "1px solid red");
+    $("#badEmail").css("display", "block");
+    $("#badEmail").text(texto);
+}
+function ocultarFormatoInvalido(){
+    $("#badEmail").css("display","none")
+    $("#useremail").css("border", "1px solid #ced4da");
+}
+
